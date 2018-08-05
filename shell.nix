@@ -8,7 +8,11 @@ stdenv.mkDerivation {
     python3Packages.virtualenv
     python3Packages.pip
     # python libs
+    python3Packages.msgpack
+    python3Packages.networkx
     python3Packages.numpy
+    python3Packages.scikitlearn
+    python3Packages.shapely
     # udacidrone deps
     python3Packages.lxml
     # system dependencies

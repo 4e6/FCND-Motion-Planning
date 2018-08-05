@@ -3,9 +3,11 @@ import time
 import msgpack
 from enum import Enum, auto
 
+import networkx as nx
 import numpy as np
 
-from planning_utils import a_star, heuristic, create_grid
+#from planning_utils import a_star, heuristic, create_grid
+import planning_utils as pu
 from udacidrone import Drone
 from udacidrone.connection import MavlinkConnection
 from udacidrone.messaging import MsgID
@@ -55,7 +57,7 @@ class MotionPlanning(Drone):
     def velocity_callback(self):
         if self.flight_state == States.LANDING:
             if self.global_position[2] - self.global_home[2] < 0.1:
-                if abs(self.local_position[2]) < 0.01:
+                if abs(self.local_position[2]) < 0.05:
                     self.disarming_transition()
 
     def state_callback(self):
@@ -80,6 +82,7 @@ class MotionPlanning(Drone):
     def takeoff_transition(self):
         self.flight_state = States.TAKEOFF
         print("takeoff transition")
+        print(self.target_position)
         self.takeoff(self.target_position[2])
 
     def waypoint_transition(self):
@@ -120,41 +123,81 @@ class MotionPlanning(Drone):
         self.target_position[2] = TARGET_ALTITUDE
 
         # TODO: read lat0, lon0 from colliders into floating point values
-        
+
         # TODO: set home position to (lon0, lat0, 0)
+        # self.set_home_position(self.global_position[0], self.global_position[1], 0)
 
         # TODO: retrieve current global position
- 
+
         # TODO: convert to current local position using global_to_local()
-        
-        print('global home {0}, position {1}, local position {2}'.format(self.global_home, self.global_position,
-                                                                         self.local_position))
+
+        print('global home {0}, position {1}, local position {2}'.format(
+            self.global_home,
+            self.global_position,
+            self.local_position))
         # Read in obstacle map
         data = np.loadtxt('colliders.csv', delimiter=',', dtype='Float64', skiprows=2)
-        
+
         # Define a grid for a particular altitude and safety margin around obstacles
-        grid, north_offset, east_offset = create_grid(data, TARGET_ALTITUDE, SAFETY_DISTANCE)
+        grid, north_offset, east_offset = pu.create_grid(data, TARGET_ALTITUDE, SAFETY_DISTANCE)
         print("North offset = {0}, east offset = {1}".format(north_offset, east_offset))
+
+        print("extracting polygons ...")
+        t = time.time()
+        polygons = pu.extract_polygons(data, SAFETY_DISTANCE)
+        print("in {0} seconds".format(time.time() - t))
+
+        print("sampling points ...")
+        t = time.time()
+        samples = pu.sample_points(data, TARGET_ALTITUDE, SAFETY_DISTANCE, num_samples=1200)
+        local_node = (self.local_position[0], self.local_position[1], TARGET_ALTITUDE)
+        samples.append(local_node)
+        print("{0} samples in {1} seconds".format(len(samples), time.time() - t))
+
+        print("creating a graph ...")
+        t = time.time()
+        g = pu.create_graph(samples, polygons, k=30)
+        print("{1} edges in {0} seconds".format(time.time() - t, len(g.edges)))
+
         # Define starting point on the grid (this is just grid center)
         grid_start = (-north_offset, -east_offset)
+        #grid_start = (300, 300)
         # TODO: convert start position to current position rather than map center
-        
+
         # Set goal as some arbitrary position on the grid
         grid_goal = (-north_offset + 10, -east_offset + 10)
+        #grid_goal = (650, 700)
         # TODO: adapt to set goal as latitude / longitude position and convert
+        max_connected = list(max(nx.connected_components(g),key=len))
+        #k = np.random.randint(len(max_connected))
+        start = pu.point_near(max_connected, (0, 0))
+        # top right
+        #goal = pu.point_near(max_connected, (600, 300))
+        # middle right (Harry Bridges Plaza)
+        goal = pu.point_near(max_connected, (400, 400))
+        # bottom right
+        #goal = pu.point_near(max_connected, (-300, 450))
+        print(len(max_connected), start, goal)
 
         # Run A* to find a path from start to goal
         # TODO: add diagonal motions with a cost of sqrt(2) to your A* implementation
         # or move to a different search space such as a graph (not done here)
-        print('Local Start and Goal: ', grid_start, grid_goal)
-        path, _ = a_star(grid, heuristic, grid_start, grid_goal)
+        #print('Local Start and Goal: ', grid_start, grid_goal)
+        #path, _ = pu.a_star(grid, pu.heuristic, grid_start, grid_goal)
+        print("searching for path ...")
+        t = time.time()
+        path, _ = pu.a_star_graph(g, pu.heuristic, start, goal)
+        print("in {0} seconds ...".format(time.time() - t))
+        print("found {2} step path from {0} to {1}".format(start, goal, len(path)))
         # TODO: prune path to minimize number of waypoints
         # TODO (if you're feeling ambitious): Try a different approach altogether!
 
         # Convert path to waypoints
-        waypoints = [[p[0] + north_offset, p[1] + east_offset, TARGET_ALTITUDE, 0] for p in path]
+        #waypoints = [[p[0] + north_offset, p[1] + east_offset, TARGET_ALTITUDE, 0] for p in path]
+        waypoints = [[int(p[0]), int(p[1]), int(p[2]), 0] for p in path]
         # Set self.waypoints
         self.waypoints = waypoints
+        print(waypoints)
         # TODO: send waypoints to sim (this is just for visualization of waypoints)
         self.send_waypoints()
 
