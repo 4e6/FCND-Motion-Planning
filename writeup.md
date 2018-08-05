@@ -43,6 +43,10 @@ calculated from a set of obstacles provided as a `colliders.csv` CSV file.
 
 ### Implementing Your Path Planning Algorithm
 
+Criteria:
+
+> Write your search algorithm. Minimum requirement here is to add diagonal motions to the A* implementation provided, and assign them a cost of sqrt(2). However, you're encouraged to get creative and try other methods from the lessons and beyond!
+
 Motion plannig algorithm is implemented in the `plan_path` function. It uses A*
 algorithm on a 2.5d graph of randomly sampled points. Steps of the planning
 algorithm is explained below.
@@ -114,4 +118,7 @@ Criteria:
 
 > This is simply a check on whether it all worked. Send the waypoints and the autopilot should fly you from start to goal!
 
-I was able to fly between all three points of interest.
+I was able to fly between all three points of interest. Harry Bridges Plaza is
+by far my favorite.
+
+![Harry Bridges Plaza](./misc/2018-08-05-172826_1274x693_scrot.png)

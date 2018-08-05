@@ -165,7 +165,7 @@ class MotionPlanning(Drone):
         # Set goal as one of the points of interest
         start = pu.point_near(max_connected, point_local_position)
         goal = pu.point_near(max_connected, point_middle_right)
-        goal = pu.point_near(max_connected, point_bottom_right)
+        #goal = pu.point_near(max_connected, point_bottom_right)
         #goal = pu.point_near(max_connected, point_top_left)
 
         # Run A* to find a path from start to goal
@@ -179,7 +179,7 @@ class MotionPlanning(Drone):
         waypoints = [[int(p[0]), int(p[1]), int(p[2]), 0] for p in path]
         # Set self.waypoints
         self.waypoints = waypoints
-        print(waypoints)
+        #print(waypoints)
         # send waypoints to sim (this is just for visualization of waypoints)
         self.send_waypoints()
 
