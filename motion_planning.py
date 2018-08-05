@@ -139,8 +139,8 @@ class MotionPlanning(Drone):
         data = np.loadtxt('colliders.csv', delimiter=',', dtype='Float64', skiprows=2)
 
         # Define a grid for a particular altitude and safety margin around obstacles
-        grid, north_offset, east_offset = pu.create_grid(data, TARGET_ALTITUDE, SAFETY_DISTANCE)
-        print("North offset = {0}, east offset = {1}".format(north_offset, east_offset))
+        #grid, north_offset, east_offset = pu.create_grid(data, TARGET_ALTITUDE, SAFETY_DISTANCE)
+        #print("North offset = {0}, east offset = {1}".format(north_offset, east_offset))
 
         print("extracting polygons ...")
         t = time.time()
@@ -149,37 +149,44 @@ class MotionPlanning(Drone):
 
         print("sampling points ...")
         t = time.time()
-        samples = pu.sample_points(data, TARGET_ALTITUDE, SAFETY_DISTANCE, num_samples=1000)
-        local_node = (self.local_position[0], self.local_position[1], TARGET_ALTITUDE)
-        samples.append(local_node)
+        samples = pu.sample_points(data, TARGET_ALTITUDE, SAFETY_DISTANCE, num_samples=1200)
+        # add some points of interest
+        point_local_position = (self.local_position[0], self.local_position[1], TARGET_ALTITUDE)
+        # Harry Bridges Plaza
+        point_middle_right = (400, 350, TARGET_ALTITUDE)
+        # Top left dead end
+        point_top_left = (550, -340, TARGET_ALTITUDE)
+        # Bottom right square
+        point_bottom_right = (-280, 400, TARGET_ALTITUDE)
+        samples.append(point_local_position)
+        samples.append(point_middle_right)
+        samples.append(point_top_left)
+        samples.append(point_bottom_right)
         print("{0} samples in {1} seconds".format(len(samples), time.time() - t))
 
         print("creating a graph ...")
         t = time.time()
-        g = pu.create_graph(samples, polygons, k=15)
+        g = pu.create_graph(samples, polygons, k=25)
         print("{1} edges in {0} seconds".format(time.time() - t, len(g.edges)))
 
         # Define starting point on the grid (this is just grid center)
-        grid_start = (-north_offset, -east_offset)
+        #grid_start = (-north_offset, -east_offset)
         #grid_start = (300, 300)
         # TODO: convert start position to current position rather than map center
 
         # Set goal as some arbitrary position on the grid
-        grid_goal = (-north_offset + 10, -east_offset + 10)
+        #grid_goal = (-north_offset + 10, -east_offset + 10)
         #grid_goal = (650, 700)
         # TODO: adapt to set goal as latitude / longitude position and convert
         max_connected = list(max(nx.connected_components(g),key=len))
         #k = np.random.randint(len(max_connected))
-        start = pu.point_near(max_connected, (0, 0))
-        # top right
-        #goal = pu.point_near(max_connected, (600, 300))
+        start = pu.point_near(max_connected, point_local_position)
         # middle right (Harry Bridges Plaza)
-        #goal = pu.point_near(max_connected, (400, 400))
+        #goal = pu.point_near(max_connected, point_middle_right)
         # bottom right
-        #goal = pu.point_near(max_connected, (-300, 450))
+        #goal = pu.point_near(max_connected, point_bottom_right)
         # top left
-        goal = pu.point_near(max_connected, (600, -400))
-        print(len(max_connected), start, goal)
+        goal = pu.point_near(max_connected, point_top_left)
 
         # Run A* to find a path from start to goal
         # TODO: add diagonal motions with a cost of sqrt(2) to your A* implementation
@@ -189,7 +196,7 @@ class MotionPlanning(Drone):
         print("searching for path ...")
         t = time.time()
         path, _ = pu.a_star_graph(g, pu.heuristic, start, goal)
-        print("in {0} seconds ...".format(time.time() - t))
+        print("in {0} seconds".format(time.time() - t))
         print("found {2} step path from {0} to {1}".format(start, goal, len(path)))
         # TODO: prune path to minimize number of waypoints
         # TODO (if you're feeling ambitious): Try a different approach altogether!

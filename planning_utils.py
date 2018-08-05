@@ -203,7 +203,7 @@ def sample_points(data, target_altitude, safety_distance, num_samples=100):
     ymax = np.max(data[:, 1] + data[:, 4])
 
     zmin = target_altitude + 1*safety_distance
-    zmax = target_altitude + 2*safety_distance
+    zmax = target_altitude + 2.5*safety_distance
 
     print("sample points", xmin, xmax, ymin, ymax, zmin, zmax)
     xvals = np.random.uniform(xmin, xmax, num_samples)
@@ -225,7 +225,7 @@ def sample_points(data, target_altitude, safety_distance, num_samples=100):
     return to_keep
 
 def point_near(points, point):
-    points_kd_tree = KDTree([(p[0], p[1]) for p in points])
+    points_kd_tree = KDTree(points)
     inds = points_kd_tree.query([point], k=1, return_distance=False)
     return points[inds[0][0]]
 
@@ -312,4 +312,12 @@ def a_star_graph(graph, heuristic, start, goal):
             n = branch[n][1]
         path.append(branch[n][1])
 
-    return path[::-1], path_cost
+        rev = path[::-1]
+        rev.append(goal)
+        return rev, path_cost
+    else:
+        print('PATH NOT FOUND!')
+        return None, None
+
+def point_2d(p):
+    return (p[0], p[1])
