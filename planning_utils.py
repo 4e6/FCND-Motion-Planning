@@ -202,8 +202,8 @@ def sample_points(data, target_altitude, safety_distance, num_samples=100):
     ymin = np.min(data[:, 1] - data[:, 4])
     ymax = np.max(data[:, 1] + data[:, 4])
 
-    zmin = target_altitude
-    zmax = target_altitude + 4*safety_distance
+    zmin = target_altitude + 1*safety_distance
+    zmax = target_altitude + 2*safety_distance
 
     print("sample points", xmin, xmax, ymin, ymax, zmin, zmax)
     xvals = np.random.uniform(xmin, xmax, num_samples)
@@ -219,7 +219,7 @@ def sample_points(data, target_altitude, safety_distance, num_samples=100):
 
     to_keep = []
     for point in samples:
-        if not collides(polygons_kd_tree, polygons_kd_list, point, kd_k=10):
+        if not collides(polygons_kd_tree, polygons_kd_list, point, kd_k=20):
             to_keep.append(point)
 
     return to_keep
@@ -232,34 +232,35 @@ def point_near(points, point):
 def points_between(c1, c2, num):
     p1 = (c1[0], c1[1])
     p2 = (c2[0], c2[1])
+    pz = min(c1[2], c2[2])
     line = LineString([p1, p2])
     nums = np.linspace(0.0, 1.0, num)
     points = [line.interpolate(x, normalized=True) for x in nums]
-    return [(p.x, p.y) for p in points]
+    return [(p.x, p.y, pz) for p in points]
 
 def can_connect(n1, n2, polygons):
     p1 = (n1[0], n1[1])
     p2 = (n2[0], n2[1])
+    pz = min(n1[2], n2[2])
     line = LineString([p1, p2])
-    for p, _ in polygons:
-        if p.crosses(line):
+    for p, (_, _, h) in polygons:
+        if p.intersects(line) and pz < h:
             return False
     return True
 
 def create_graph(nodes, polygons, k=5):
     G = nx.Graph()
 
-    nodes_tree = KDTree([(n[0], n[1]) for n in nodes])
-    polygons_coords = [(c[0], c[1]) for _, c in polygons]
-    polygons_tree = KDTree(polygons_coords)
+    nodes_tree = KDTree([(c[0], c[1]) for c in nodes])
+    polygons_tree = KDTree([(c[0], c[1]) for _, c in polygons])
 
     for node in nodes:
         node_inds = nodes_tree.query([(node[0], node[1])], k=k, return_distance=False)[0]
         #p1_inds = polygons_tree.query([node], k=12*k, return_distance=False)[0]
         for ni in node_inds[1:]:
             node_i = nodes[ni]
-            pts = points_between(node, node_i, num=11)
-            poly_inds_list = polygons_tree.query(pts, k=10, return_distance=False)
+            pts = points_between(node, node_i, num=21)
+            poly_inds_list = polygons_tree.query([(p[0], p[1]) for p in pts], k=30, return_distance=False)
             poly_inds = set().union(*poly_inds_list)
             polys = [polygons[i] for i in poly_inds]
             if can_connect(node, node_i, polys):

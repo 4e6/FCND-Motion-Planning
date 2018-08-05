@@ -57,7 +57,7 @@ class MotionPlanning(Drone):
     def velocity_callback(self):
         if self.flight_state == States.LANDING:
             if self.global_position[2] - self.global_home[2] < 0.1:
-                if abs(self.local_position[2]) < 0.05:
+                if abs(self.local_position[2]) < 0.1:
                     self.disarming_transition()
 
     def state_callback(self):
@@ -149,14 +149,14 @@ class MotionPlanning(Drone):
 
         print("sampling points ...")
         t = time.time()
-        samples = pu.sample_points(data, TARGET_ALTITUDE, SAFETY_DISTANCE, num_samples=1200)
+        samples = pu.sample_points(data, TARGET_ALTITUDE, SAFETY_DISTANCE, num_samples=1000)
         local_node = (self.local_position[0], self.local_position[1], TARGET_ALTITUDE)
         samples.append(local_node)
         print("{0} samples in {1} seconds".format(len(samples), time.time() - t))
 
         print("creating a graph ...")
         t = time.time()
-        g = pu.create_graph(samples, polygons, k=30)
+        g = pu.create_graph(samples, polygons, k=15)
         print("{1} edges in {0} seconds".format(time.time() - t, len(g.edges)))
 
         # Define starting point on the grid (this is just grid center)
@@ -174,9 +174,11 @@ class MotionPlanning(Drone):
         # top right
         #goal = pu.point_near(max_connected, (600, 300))
         # middle right (Harry Bridges Plaza)
-        goal = pu.point_near(max_connected, (400, 400))
+        #goal = pu.point_near(max_connected, (400, 400))
         # bottom right
         #goal = pu.point_near(max_connected, (-300, 450))
+        # top left
+        goal = pu.point_near(max_connected, (600, -400))
         print(len(max_connected), start, goal)
 
         # Run A* to find a path from start to goal
