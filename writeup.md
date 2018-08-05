@@ -118,7 +118,8 @@ Criteria:
 
 > This is simply a check on whether it all worked. Send the waypoints and the autopilot should fly you from start to goal!
 
-I was able to fly between all three points of interest. Harry Bridges Plaza is
-by far my favorite.
+I was able to fly between all three
+[points of interest](#3-set-the-starting-position-and-points-of-interest).
+Harry Bridges Plaza is by far my favorite.
 
 ![Harry Bridges Plaza](./misc/2018-08-05-172826_1274x693_scrot.png)
