@@ -6,12 +6,11 @@ from enum import Enum, auto
 import networkx as nx
 import numpy as np
 
-#from planning_utils import a_star, heuristic, create_grid
 import planning_utils as pu
 from udacidrone import Drone
 from udacidrone.connection import MavlinkConnection
 from udacidrone.messaging import MsgID
-from udacidrone.frame_utils import global_to_local
+from udacidrone.frame_utils import global_to_local, local_to_global
 
 
 class States(Enum):
@@ -121,11 +120,17 @@ class MotionPlanning(Drone):
         SAFETY_DISTANCE = 5
 
         self.target_position[2] = TARGET_ALTITUDE
-
+        # Set the global home location from the first line of 'colliders.csv'
+        print("setting position from colliders.csv ...")
+        with open('colliders.csv') as f:
+            first_line = f.readline()
+            coords = [c for coord in first_line.split(',') for c in coord.split()]
+            self.set_home_position(float(coords[3]), float(coords[1]), self.global_position[2])
         print('global home {0}, position {1}, local position {2}'.format(
             self.global_home,
             self.global_position,
             self.local_position))
+
         # Read in obstacle map
         data = np.loadtxt('colliders.csv', delimiter=',', dtype='Float64', skiprows=2)
 
@@ -138,7 +143,7 @@ class MotionPlanning(Drone):
         t = time.time()
         samples = pu.sample_points(data, TARGET_ALTITUDE, SAFETY_DISTANCE, num_samples=1200)
         # Define some points of interest, we'll use them as a goal locations
-        point_local_position = (self.local_position[0], self.local_position[1], TARGET_ALTITUDE)
+        point_local_position = (int(self.local_position[0]), int(self.local_position[1]), TARGET_ALTITUDE)
         # Harry Bridges Plaza
         point_middle_right = (400, 350, TARGET_ALTITUDE)
         # Top left dead end
@@ -165,18 +170,22 @@ class MotionPlanning(Drone):
         # Set goal as one of the points of interest
         start = pu.point_near(max_connected, point_local_position)
         goal = pu.point_near(max_connected, point_middle_right)
-        #goal = pu.point_near(max_connected, point_bottom_right)
-        #goal = pu.point_near(max_connected, point_top_left)
+        # goal1 = pu.point_near(max_connected, point_top_left)
+        # goal2 = pu.point_near(max_connected, point_bottom_right)
 
         # Run A* to find a path from start to goal
         print("searching for a path ...")
         t = time.time()
         path, _ = pu.a_star_graph(g, pu.heuristic, start, goal)
+        # path1, _ = pu.a_star_graph(g, pu.heuristic, goal, goal1)
+        # path2, _ = pu.a_star_graph(g, pu.heuristic, goal1, goal2)
+        # path3, _ = pu.a_star_graph(g, pu.heuristic, goal2, start)
         print("in {0} seconds".format(time.time() - t))
         print("found {2} step path from {0} to {1}".format(start, goal, len(path)))
 
         # Convert path to waypoints
         waypoints = [[int(p[0]), int(p[1]), int(p[2]), 0] for p in path]
+        # waypoints = [[int(p[0]), int(p[1]), int(p[2]), 0] for p in path + path1 + path2 + path3]
         # Set self.waypoints
         self.waypoints = waypoints
         #print(waypoints)

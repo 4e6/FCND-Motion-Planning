@@ -45,6 +45,56 @@ calculated from a set of obstacles provided as a `colliders.csv` CSV file.
 
 Criteria:
 
+> In the starter code, we assume that the home position is where the drone first initializes, but in reality you need to be able to start planning from anywhere. Modify your code to read the global home location from the first line of the colliders.csv file and set that position as global home (self.set_home_position())
+
+I was able to set the global home position from the first line of the
+`colliders.csv` file:
+
+``` python
+with open('colliders.csv') as f:
+    first_line = f.readline()
+    coords = [c for coord in first_line.split(',') for c in coord.split()]
+    self.set_home_position(float(coords[3]), float(coords[1]), self.global_position[2])
+```
+
+Criteria:
+
+> In the starter code, we assume the drone takes off from map center, but you'll need to be able to takeoff from anywhere. Retrieve your current position in geodetic coordinates from self._latitude, self._longitude and self._altitude. Then use the utility function global_to_local() to convert to local position (using self.global_home as well, which you just set)
+
+I was able to get the local position from the `self.local_position` attribute.
+
+Criteria:
+
+> In the starter code, the start point for planning is hardcoded as map center. Change this to be your current local position.
+
+The starting point is set to the local position:
+
+``` python
+point_local_position = (int(self.local_position[0]), int(self.local_position[1]), TARGET_ALTITUDE)
+
+```
+
+Criteria:
+
+> In the starter code, the goal position is hardcoded as some location 10 m north and 10 m east of map center. Modify this to be set as some arbitrary position on the grid given any geodetic coordinates (latitude, longitude)
+
+I used several points of interest when testing the implementation:
+
+``` python
+# Harry Bridges Plaza
+point_middle_right = (400, 350, TARGET_ALTITUDE)
+# Top left dead end
+point_top_left = (550, -340, TARGET_ALTITUDE)
+# Bottom right square
+point_bottom_right = (-280, 400, TARGET_ALTITUDE)
+```
+
+The points are in local coordinates because this way is more convenient for
+me. They can be easily converted to the global coordinates using the
+`udacidrone.frame_utils.local_to_global` function.
+
+Criteria:
+
 > Write your search algorithm. Minimum requirement here is to add diagonal motions to the A* implementation provided, and assign them a cost of sqrt(2). However, you're encouraged to get creative and try other methods from the lessons and beyond!
 
 Motion plannig algorithm is implemented in the `plan_path` function. It uses A*
@@ -110,6 +160,13 @@ step and searches for a path between a `start` and `goal` points.
 
 As a final step, we send waypoints calculated by the `a_star_graph` algorithm to
 the sim.
+
+Criteria:
+
+> Cull waypoints from the path you determine using search.
+
+I don't need to cull waypoints because my A* algorightm (described in the
+previous criteria) works with a graph representation.
 
 
 ### Execute the flight
